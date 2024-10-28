@@ -67,3 +67,11 @@ add_subdirectory(src)
 # The test configuration is inside the test directory.
 include(CTest)
 add_subdirectory(test)
+
+add_library(can2040 lib/can2040/src/can2040.c)
+target_include_directories(can2040 PUBLIC lib/can2040/src)
+target_link_libraries(can2040 PRIVATE
+  cmsis_core
+  hardware_structs
+  pico_stdlib
+)
