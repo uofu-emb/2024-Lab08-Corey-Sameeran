@@ -1,13 +1,16 @@
-#include <can2040.h>
+#include "can2040.h"
 #include <hardware/regs/intctrl.h>
 #include <stdio.h>
 #include <pico/stdlib.h>
+#include <FreeRTOS.h>
+#include <task.h>
+#include <queue.h>
 
 static struct can2040 cbus;
 
 static void can2040_cb(struct can2040 *cd, uint32_t notify, struct can2040_msg *msg)
 {
-    // Put your code here....
+    printf("Callback\n");
 }
 
 static void PIOx_IRQHandler(void)
@@ -32,4 +35,29 @@ void canbus_setup(void)
 
     // Start canbus
     can2040_start(&cbus, sys_clock, bitrate, gpio_rx, gpio_tx);
+}
+
+void main_task(__unused void *params)
+{
+    struct can2040_msg msg;
+    msg.id = 0x1;
+    msg.dlc = 1;
+    msg.data[0] = 0x01;
+
+    while (1) {
+        can2040_transmit(&cbus, &msg);
+        printf("Transmission sent.\n");
+        sleep_ms(1000);
+    }
+}
+
+int main(void)
+{
+    stdio_init_all();
+    canbus_setup();
+    TaskHandle_t task;
+    xTaskCreate(main_task, "MainThread",
+                configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1UL, &task);
+    vTaskStartScheduler();
+    return 0;
 }
