@@ -6,6 +6,8 @@
 #include <task.h>
 #include <queue.h>
 
+#define BABBLING 1
+
 static struct can2040 cbus;
 QueueHandle_t msgs;
 
@@ -38,7 +40,34 @@ void canbus_setup(void)
     can2040_start(&cbus, sys_clock, bitrate, gpio_rx, gpio_tx);
 }
 
-void main_task(__unused void *params)
+void tx_task(__unused void *params)
+{
+    struct can2040_msg msg;
+    #ifdef BABBLING
+        msg.id = 0x1; // Lower message id = higher priority
+    #else
+        msg.id = 0x2;
+    #endif
+    msg.dlc = 1;
+    msg.data[0] = 0x01;
+
+    while (1) {
+        if (can2040_transmit(&cbus, &msg))
+        {
+            printf("Transmission failed.\n");
+        }
+        else
+        {
+            printf("Transmission sent.\n");
+        }
+        
+        #ifndef BABBLING
+            sleep_ms(1000);
+        #endif
+    }
+}
+
+void rx_task(__unused void *params)
 {
     struct can2040_msg data;
     while (1) {
@@ -50,11 +79,12 @@ void main_task(__unused void *params)
 int main(void)
 {
     stdio_init_all();
-    msgs = xQueueCreate(100, sizeof(struct can2040_msg));
     canbus_setup();
-    TaskHandle_t task;
-    xTaskCreate(main_task, "MainThread",
-                configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1UL, &task);
+    TaskHandle_t tx_task_handle, rx_task_handle;
+    xTaskCreate(tx_task, "TxThread",
+                configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1UL, &tx_task_handle);
+    xTaskCreate(rx_task, "RxThread",
+                configMINIMAL_STACK_SIZE, NULL, tskIDLE_PRIORITY + 1UL, &rx_task_handle);
     vTaskStartScheduler();
     return 0;
 }

@@ -36,6 +36,36 @@ pico_add_extra_outputs(can_rx)
 
 add_custom_target(flash_rx picotool load -f $<TARGET_FILE:can_rx> DEPENDS can_rx)
 
+############## BABBLING ###############
+
+add_executable(can_babbling
+    can_babbling.c
+)
+
+pico_set_program_name(can_babbling "test_babbling")
+pico_set_program_version(can_babbling "0.1")
+
+pico_enable_stdio_uart(can_babbling 0)
+pico_enable_stdio_usb(can_babbling 1)
+
+target_link_libraries(can_babbling PRIVATE
+  can2040
+  pico_stdlib
+  pico_multicore
+  pico_async_context_freertos
+  FreeRTOS-Kernel-Heap4
+)
+
+if(PICO_CYW43_SUPPORTED)
+    target_link_libraries(can_babbling PRIVATE
+        pico_cyw43_arch_none
+    )
+endif()
+
+pico_add_extra_outputs(can_babbling)
+
+add_custom_target(flash_babbling picotool load -f $<TARGET_FILE:can_tx> DEPENDS can_babbling)
+
 ############## TX ###############
 
 add_executable(can_tx

@@ -45,8 +45,15 @@ void main_task(__unused void *params)
     msg.data[0] = 0x01;
 
     while (1) {
-        can2040_transmit(&cbus, &msg);
-        printf("Transmission sent.\n");
+        if (can2040_transmit(&cbus, &msg))
+        {
+            printf("Transmission failed.\n");
+        }
+        else
+        {
+            printf("Transmission sent.\n");
+        }
+        
         sleep_ms(1000);
     }
 }
